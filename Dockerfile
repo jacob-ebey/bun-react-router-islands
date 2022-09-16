@@ -1,6 +1,5 @@
 FROM ubuntu:18.04 AS base
 
-RUN apt update && apt upgrade
 RUN apt install curl
 RUN curl https://bun.sh/install | bash
 
