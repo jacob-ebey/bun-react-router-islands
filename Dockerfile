@@ -12,4 +12,5 @@ RUN ~/.bun/bin/bun i
 RUN ~/.bun/bin/bun run patch-node_modules.ts
 
 EXPOSE 3000
-CMD ["~/.bun/bin/bun", "run", "start"]
+ENTRYPOINT ["~/.bun/bin/bun"]
+CMD ["run", "start"]
