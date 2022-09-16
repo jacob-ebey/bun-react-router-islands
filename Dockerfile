@@ -5,9 +5,6 @@ RUN curl https://bun.sh/install | bash
 RUN export BUN_INSTALL="$HOME/.bun"
 RUN export PATH="$BUN_INSTALL/bin:$PATH"
 
-
-FROM base
-
 RUN mkdir /application/
 WORKDIR /application/
 
