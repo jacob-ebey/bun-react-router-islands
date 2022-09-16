@@ -1,6 +1,6 @@
 FROM alpine:latest AS base
 
-RUN apk --no-cache add curl
+RUN apk --no-cache add curl bash
 RUN curl https://bun.sh/install | bash
 
 FROM base
