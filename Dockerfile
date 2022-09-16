@@ -1,6 +1,6 @@
-FROM ubuntu:18.04 AS base
+FROM alpine:latest AS base
 
-RUN apt install curl
+RUN apk --no-cache add curl
 RUN curl https://bun.sh/install | bash
 
 FROM base
