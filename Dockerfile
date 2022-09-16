@@ -1,6 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS base
+
+RUN sudo apt update && sudo apt upgrade
+RUN sudo apt install curl
 
 RUN curl https://bun.sh/install | bash
+
+FROM base
 
 RUN mkdir /application/
 WORKDIR /application/
