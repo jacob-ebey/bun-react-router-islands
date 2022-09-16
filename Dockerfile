@@ -1,4 +1,5 @@
-FROM ubuntu:latest AS base
+FROM ubuntu:latest
+ENV DEBIAN_FRONTEND noninteractive
 
 # RUN apk --no-cache add curl bash
 RUN apt-get update && apt-get install -y curl bash unzip
