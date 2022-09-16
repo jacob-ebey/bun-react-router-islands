@@ -1,4 +1,7 @@
-FROM jarredsumner/bun:edge as deps
+FROM ubuntu:18.04
+
+RUN curl https://bun.sh/install | bash
+
 RUN mkdir /application/
 WORKDIR /application/
 
@@ -8,4 +11,4 @@ RUN bun i
 RUN bun run patch-node_modules.ts
 
 EXPOSE 3000
-CMD ["run", "start"]
+CMD ["bun", "run", "start"]
