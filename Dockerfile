@@ -8,8 +8,8 @@ WORKDIR /application/
 
 ADD . ./
 
-RUN ~/.bun/bun i
-RUN ~/.bun/bun run patch-node_modules.ts
+RUN ~/.bun/bin/bun i
+RUN ~/.bun/bin/bun run patch-node_modules.ts
 
 EXPOSE 3000
-CMD ["~/.bun/bun", "run", "start"]
+CMD ["~/.bun/bin/bun", "run", "start"]
