@@ -24,16 +24,14 @@ export default function Home() {
     <div>
       <h1>{data.message}</h1>
       {actionData && <p>{actionData}</p>}
-      <div id="counter">
-        <Counter />
-      </div>
+
+      <Enhance<IslandArgs> with="island" args={["islands/counter"]}>
+        <Counter initialValue={2} />
+      </Enhance>
+
       <Form method="post">
         <button type="submit">Submit</button>
       </Form>
-      <Enhance<IslandArgs>
-        with="island"
-        args={["islands/counter", "#counter"]}
-      />
       <Enhance<LoggerArgs> with="logger" args={[data.message, actionData]} />
     </div>
   );

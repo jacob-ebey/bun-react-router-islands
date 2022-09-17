@@ -1,4 +1,5 @@
 import { Transpiler } from "bun";
+import * as fs from "fs";
 import * as path from "path";
 import { rollup } from "rollup/dist/rollup.js";
 import commonjs from "@rollup/plugin-commonjs";
@@ -22,7 +23,7 @@ const cache = new Map<string, string>();
 export async function transformFile(src: string) {
   if (!src) return null;
 
-  const file = Bun.resolveSync(src, process.cwd());
+  const file = await Bun.resolve(src, process.cwd());
 
   if (cache.has(file)) {
     return cache.get(file)!;
@@ -45,7 +46,7 @@ export async function transformFile(src: string) {
       }),
       {
         name: "bun-resolver",
-        resolveId(id, importer) {
+        async resolveId(id, importer) {
           id = id.replace(/^\u0000/, "").replace(/\?.*$/, "");
           importer =
             importer && importer.replace(/^\u0000/, "").replace(/\?.*$/, "");
@@ -53,7 +54,7 @@ export async function transformFile(src: string) {
             return id;
           }
 
-          const resolved = Bun.resolveSync(
+          const resolved = await Bun.resolve(
             id,
             path.dirname(importer) || process.cwd()
           );
@@ -75,10 +76,10 @@ export async function transformFile(src: string) {
         name: "bun-transpiler",
         async load(id) {
           if (id.endsWith(".ts") || id.endsWith(".tsx")) {
-            const fileBlob = Bun.file(
-              id.replace(/^\u0000/, "").replace(/\?.*$/, "")
+            let code = fs.readFileSync(
+              id.replace(/^\u0000/, "").replace(/\?.*$/, ""),
+              "utf8"
             );
-            let code = await fileBlob.text();
             code = transpiler.transformSync(
               code,
               file.endsWith(".ts") ? "ts" : "tsx"
