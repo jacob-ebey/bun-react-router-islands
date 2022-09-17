@@ -1,12 +1,12 @@
 {
   "private": true,
   "name": "bun-react-router-islands",
-  "module": "index.ts",
+  "module": "server.ts",
   "type": "module",
   "scripts": {
     "postinstall": "bun run ./patch-node_modules.ts",
-    "dev": "NODE_ENV=development bun ./index.ts",
-    "start": "NODE_ENV=production bun ./index.ts"
+    "dev": "NODE_ENV=development bun ./server.ts",
+    "start": "NODE_ENV=production bun ./server.ts"
   },
   "devDependencies": {
     "@types/react": "^18.0.20",

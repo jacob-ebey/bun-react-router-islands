@@ -26,7 +26,7 @@ export default function Home() {
       {actionData && <p>{actionData}</p>}
 
       <Enhance<IslandArgs> with="island" args={["islands/counter"]}>
-        <Counter initialValue={2} />
+        <Counter initialValue={1} />
       </Enhance>
 
       <Form method="post">

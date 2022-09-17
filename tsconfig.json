@@ -10,7 +10,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["app/*"]
+      "~/*": ["app/*"],
+      "bun-remix": ["bun-remix/index.ts"]
     }
   }
 }

@@ -16,7 +16,7 @@ const transpiler = new Transpiler({
   treeShaking: true,
   trimUnusedImports: true,
   platform: "browser",
-  tsconfig: require("../tsconfig.json"),
+  tsconfig: require("./tsconfig.json"),
 });
 
 const cache = new Map<string, string>();
