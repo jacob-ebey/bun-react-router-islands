@@ -1,23 +1,19 @@
-FROM ubuntu:latest
-ENV DEBIAN_FRONTEND noninteractive
-
-# RUN apk --no-cache add curl bash
-RUN apt-get update && apt-get install -y curl unzip
-ENV BUN_INSTALL="/bun"
-RUN curl https://bun.sh/install | bash
-ENV PATH="$BUN_INSTALL/bin:$PATH"
-
+FROM jarredsumner/bun:edge as deps
 RUN mkdir /application/
 WORKDIR /application/
 
+ADD package.json bun.lockb ./
+RUN bun install
 
-RUN ls /bun
-RUN echo $PATH;
+FROM jarredsumner/bun:edge
+RUN mkdir /application/
+WORKDIR /application/
 
-ADD . ./
+COPY --from=deps /application/node_modules /application/node_modules 
+COPY --from=deps /application/package.json /application/package.json
+COPY --from=deps /application/bun.lockb /application/bun.lockb
 
-RUN bun i
-RUN bun run ./patch-node_modules.ts
+ADD ./app ./src ./index.ts tsconfig.json ./
 
 EXPOSE 3000
-ENTRYPOINT ["bun", "run", "start.ts"]
+CMD ["run", "start"]
