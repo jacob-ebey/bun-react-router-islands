@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "react-router-ssr",
+  "name": "bun-react-router-islands",
   "module": "index.ts",
   "type": "module",
   "scripts": {
