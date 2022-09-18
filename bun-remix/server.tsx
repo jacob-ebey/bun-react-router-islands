@@ -53,6 +53,7 @@ export async function createServer({
         ...routes[0].children,
         {
           path: "*",
+          element: "",
           action: () => {
             throw new Response(null, { status: 404 });
           },
