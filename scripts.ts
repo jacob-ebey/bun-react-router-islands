@@ -35,6 +35,7 @@ export async function transformFile(src: string) {
     target: "es2019",
     jsx: "automatic",
     jsxImportSource: "react",
+    minify: mode === "production",
     define: {
       "process.env.NODE_ENV": `"${mode}"`,
     },
