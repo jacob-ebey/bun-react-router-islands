@@ -34,7 +34,7 @@ export async function transformFile(src: string) {
     platform: "browser",
     target: "es2019",
     jsx: "automatic",
-    jsxImportSource: "react",
+    jsxImportSource: "preact",
     minify: mode === "production",
     define: {
       "process.env.NODE_ENV": `"${mode}"`,
@@ -70,7 +70,6 @@ function bunResolvePlugin(): esbuild.Plugin {
       build.onResolve({ filter: /.*/ }, async (args) => {
         const parent =
           (args.importer && path.dirname(args.importer)) || process.cwd();
-        console.log({ path: args.path, parent });
         if (args.path.startsWith(".")) {
           return {
             path: path.resolve(parent, args.path),
@@ -134,8 +133,15 @@ function esmNodeModulesPlugin(): esbuild.Plugin {
           );
           const { version } = JSON.parse(pkgText);
 
+          if (packageName === "react" || packageName === "react-dom") {
+            return {
+              path: `https://cdn.skypack.dev/preact/compat`,
+              external: true,
+            };
+          }
+
           return {
-            path: `https://esm.sh/${packageName}@${version}${rest}?target=es2019`,
+            path: `https://esm.sh/${packageName}@${version}${rest}?target=es2019&alias=react:preact/compat&alias=react-dom:preact/compat`,
             external: true,
           };
         }

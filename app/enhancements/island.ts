@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { createElement } from "react";
-import { hydrateRoot } from "react-dom/client";
+import { hydrate } from "react-dom";
 
 type Island = string;
 export type IslandArgs = [Island];
@@ -16,5 +16,5 @@ export default async function island(
   const mod = await import(`/_script?${searchParams.toString()}`);
   const node = createElement(mod.default, props);
   const element = document.getElementById(id).previousElementSibling;
-  hydrateRoot(element, node);
+  hydrate(node, element);
 }
