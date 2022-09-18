@@ -22,39 +22,11 @@ export async function transformFile(src: string) {
     return cache.get(file)!;
   }
 
-  let stdin;
-  let entryPoints = {
-    entry: file,
-  };
-
-  if (isBareModuleId(src) && !src.startsWith("app/")) {
-    const mod = await import(src);
-    const toReExport =
-      Object.keys(mod).length === 1 && mod.default
-        ? Object.getOwnPropertyNames(
-            typeof mod.default === "function" ? mod.default() : mod.default
-          ).filter((m) => m !== "default")
-        : null;
-
-    let contents = `import * as mod from ${JSON.stringify(src)};
-export default mod.default || mod;
-export * from ${JSON.stringify(src)};`;
-
-    if (toReExport) {
-      contents += `export { ${toReExport.join(", ")} } from ${JSON.stringify(
-        src
-      )};`;
-    }
-
-    stdin = {
-      contents,
-    };
-    entryPoints = undefined;
-  }
-
   const buildResult = await esbuild.build({
-    entryPoints,
-    stdin,
+    entryPoints: {
+      entry: file,
+    },
+    outdir: "/",
     logLevel: "silent",
     write: false,
     bundle: true,
@@ -84,7 +56,8 @@ export * from ${JSON.stringify(src)};`;
       })
     );
 
-  const code = buildResult.outputFiles[0].text;
+  console.log(buildResult.outputFiles);
+  const code = buildResult.outputFiles.find((f) => f.path === "/entry.js").text;
 
   cache.set(file, code);
   return code;
@@ -97,6 +70,16 @@ function bunResolvePlugin(): esbuild.Plugin {
       build.onResolve({ filter: /.*/ }, async (args) => {
         const parent =
           (args.importer && path.dirname(args.importer)) || process.cwd();
+        console.log({ path: args.path, parent });
+        if (args.path.startsWith(".")) {
+          return {
+            path: path.resolve(parent, args.path),
+            pluginData: {
+              parent,
+            },
+          };
+        }
+
         return {
           path: await Bun.resolve(args.path, parent),
           pluginData: {
@@ -174,7 +157,7 @@ function getLoader(file: string): esbuild.Loader {
     case ".json":
       return "json";
     case ".css":
-      return "css";
+      return "file";
     default:
       return "text";
   }
