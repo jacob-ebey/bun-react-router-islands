@@ -21,5 +21,5 @@ export async function createRoutes(
     }
   }
 
-  return results.length > 0 ? results : undefined;
+  return results;
 }

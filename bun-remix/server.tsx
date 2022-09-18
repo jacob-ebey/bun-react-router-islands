@@ -49,6 +49,18 @@ export async function createServer({
       routesConfig = await loadRoutesConfig(appDirectory);
       const { createRoutes } = await import("./routes");
       routes = await createRoutes(routesConfig);
+      routes[0].children = [
+        ...routes[0].children,
+        {
+          path: "*",
+          action: () => {
+            throw new Response(null, { status: 404 });
+          },
+          loader: () => {
+            throw new Response(null, { status: 404 });
+          },
+        },
+      ];
     }
 
     if (before) {
