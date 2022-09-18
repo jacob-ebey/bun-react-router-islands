@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 export default function Counter({ initialValue }: { initialValue?: number }) {
   const [count, setCount] = React.useState(initialValue || 0);

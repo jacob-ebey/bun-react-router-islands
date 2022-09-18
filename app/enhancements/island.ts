@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import React from "react";
+import * as React from "react";
 import ReactDOM from "react-dom/client";
 
 type Island = string;
@@ -12,7 +12,7 @@ export default async function island(
 ) {
   const [island] = args;
   const searchParams = new URLSearchParams();
-  searchParams.set("src", `app/${island}`);
+  searchParams.set("src", `./app/${island}`);
   const mod = await import(`/_script?${searchParams.toString()}`);
   const node = React.createElement(mod.default, props);
   const element = document.getElementById(id).previousElementSibling;

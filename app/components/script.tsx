@@ -15,7 +15,7 @@ export function Enhance<TArgs extends Array<unknown> = never>({
   const params = new URLSearchParams({
     src: path.relative(
       process.cwd(),
-      path.resolve(process.cwd(), path.join("app/enhancements", name))
+      path.resolve(process.cwd(), path.join("./app/enhancements", name))
     ),
   });
 

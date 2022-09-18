@@ -1,23 +1,16 @@
-import { Transpiler } from "bun";
+import * as Bun from "bun";
 import * as fs from "fs";
 import * as path from "path";
-import { rollup } from "rollup/dist/rollup.js";
-import commonjs from "@rollup/plugin-commonjs";
-import replace from "@rollup/plugin-replace";
+import * as esbuild from "esbuild-wasm/lib/browser";
+
+await esbuild.initialize({
+  wasmModule: new WebAssembly.Module(
+    fs.readFileSync("./node_modules/esbuild-wasm/esbuild.wasm")
+  ),
+  worker: false,
+});
 
 const mode = process.env.NODE_ENV || "production";
-
-const transpiler = new Transpiler({
-  define: {
-    "process.env.NODE_ENV": JSON.stringify(mode),
-  },
-  allowBunRuntime: false,
-  loader: "tsx",
-  treeShaking: true,
-  trimUnusedImports: true,
-  platform: "browser",
-  tsconfig: require("./tsconfig.json"),
-});
 
 const cache = new Map<string, string>();
 export async function transformFile(src: string) {
@@ -29,81 +22,164 @@ export async function transformFile(src: string) {
     return cache.get(file)!;
   }
 
-  const bundled = await rollup({
-    input: file,
-    context: path.dirname(file),
-    makeAbsoluteExternalsRelative: false,
-    external: (id) => {
-      return id.startsWith("/_script?src=");
-    },
-    plugins: [
-      replace({
-        preventAssignment: true,
-        "process.env.NODE_ENV": JSON.stringify(mode),
-      }),
-      commonjs({
-        defaultIsModuleExports: true,
-      }),
-      {
-        name: "bun-resolver",
-        async resolveId(id, importer) {
-          id = id.replace(/^\u0000/, "").replace(/\?.*$/, "");
-          importer =
-            importer && importer.replace(/^\u0000/, "").replace(/\?.*$/, "");
-          if (!importer || id === importer) {
-            return id;
-          }
+  let stdin;
+  let entryPoints = {
+    entry: file,
+  };
 
-          const resolved = await Bun.resolve(
-            id,
-            path.dirname(importer) || process.cwd()
-          );
+  if (isBareModuleId(src) && !src.startsWith("app/")) {
+    const mod = await import(src);
+    const toReExport =
+      Object.keys(mod).length === 1 && mod.default
+        ? Object.getOwnPropertyNames(
+            typeof mod.default === "function" ? mod.default() : mod.default
+          ).filter((m) => m !== "default")
+        : null;
 
-          if (importer.includes("node_modules") && id.startsWith("./")) {
-            return resolved;
-          }
+    let contents = `import * as mod from ${JSON.stringify(src)};
+export default mod.default || mod;
+export * from ${JSON.stringify(src)};`;
 
-          if (resolved.includes("node_modules")) {
-            const searchParams = new URLSearchParams({ src: id });
+    if (toReExport) {
+      contents += `export { ${toReExport.join(", ")} } from ${JSON.stringify(
+        src
+      )};`;
+    }
 
-            return { id: `/_script?${searchParams}`, external: true };
-          }
+    stdin = {
+      contents,
+    };
+    entryPoints = undefined;
+  }
 
-          return null;
-        },
-      },
-      {
-        name: "bun-transpiler",
-        async load(id) {
-          if (id.endsWith(".ts") || id.endsWith(".tsx")) {
-            let code = fs.readFileSync(
-              id.replace(/^\u0000/, "").replace(/\?.*$/, ""),
-              "utf8"
-            );
-            code = transpiler.transformSync(
-              code,
-              file.endsWith(".ts") ? "ts" : "tsx"
-            );
-            if (file.endsWith(".tsx")) {
-              code =
-                "import __jsx_runtime__ from'/_script?src=react/jsx-runtime';const jsx=__jsx_runtime__.jsx;" +
-                code;
-            }
-            return code;
-          }
-          return null;
-        },
-      },
-    ],
-  });
-
-  const output = await bundled.generate({
-    file: "bundle.js",
+  const buildResult = await esbuild.build({
+    entryPoints,
+    stdin,
+    logLevel: "silent",
+    write: false,
+    bundle: true,
     format: "esm",
-    compact: true,
+    platform: "browser",
+    target: "es2019",
+    jsx: "automatic",
+    jsxImportSource: "react",
+    define: {
+      "process.env.NODE_ENV": `"${mode}"`,
+    },
+    plugins: [esmNodeModulesPlugin(), bunResolvePlugin(), bunLoadPlugin()],
   });
-  const code = output.output[0].code;
+
+  if (buildResult.warnings.length > 0)
+    console.log(
+      await esbuild.formatMessages(buildResult.warnings, {
+        kind: "warning",
+        color: true,
+      })
+    );
+  if (buildResult.errors.length > 0)
+    console.log(
+      await esbuild.formatMessages(buildResult.errors, {
+        kind: "error",
+        color: true,
+      })
+    );
+
+  const code = buildResult.outputFiles[0].text;
 
   cache.set(file, code);
   return code;
+}
+
+function bunResolvePlugin(): esbuild.Plugin {
+  return {
+    name: "bun-resolve",
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, async (args) => {
+        const parent =
+          (args.importer && path.dirname(args.importer)) || process.cwd();
+        return {
+          path: await Bun.resolve(args.path, parent),
+          pluginData: {
+            parent,
+          },
+        };
+      });
+    },
+  };
+}
+
+function bunLoadPlugin(): esbuild.Plugin {
+  return {
+    name: "bun-load",
+    setup(build) {
+      build.onLoad({ filter: /.*/ }, async (args) => {
+        const path = await Bun.resolve(
+          args.path,
+          (args.pluginData && args.pluginData.parent) || process.cwd()
+        );
+        const contents = fs.readFileSync(path, "utf8");
+        return {
+          contents,
+          loader: getLoader(args.path),
+        };
+      });
+    },
+  };
+}
+
+function esmNodeModulesPlugin(): esbuild.Plugin {
+  return {
+    name: "esm-node-modules",
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, async (args) => {
+        if (isBareModuleId(args.path)) {
+          const packageNameSplit = args.path.split("/");
+          let packageName = packageNameSplit[0];
+          let rest = packageNameSplit.slice(1).join("/");
+          if (packageName.startsWith("@")) {
+            packageName = packageNameSplit.slice(0, 1).join("/");
+            rest = packageNameSplit.slice(2).join("/");
+          }
+          rest = rest ? `/${rest}` : "";
+
+          const pkgText = fs.readFileSync(
+            path.resolve(
+              process.cwd(),
+              `node_modules/${packageName}/package.json`
+            ),
+            "utf8"
+          );
+          const { version } = JSON.parse(pkgText);
+
+          return {
+            path: `https://esm.sh/${packageName}@${version}${rest}?target=es2019`,
+            external: true,
+          };
+        }
+      });
+    },
+  };
+}
+
+function getLoader(file: string): esbuild.Loader {
+  const ext = path.extname(file);
+  switch (ext) {
+    case ".js":
+    case ".jsx":
+      return "jsx";
+    case ".ts":
+      return "ts";
+    case ".tsx":
+      return "tsx";
+    case ".json":
+      return "json";
+    case ".css":
+      return "css";
+    default:
+      return "text";
+  }
+}
+
+function isBareModuleId(id: string) {
+  return !id.startsWith(".") && !id.startsWith("/") && !path.isAbsolute(id);
 }
