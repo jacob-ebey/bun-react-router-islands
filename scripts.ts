@@ -56,7 +56,6 @@ export async function transformFile(src: string) {
       })
     );
 
-  console.log(buildResult.outputFiles);
   const code = buildResult.outputFiles.find((f) => f.path === "/entry.js").text;
 
   cache.set(file, code);
