@@ -1,15 +1,24 @@
-import { Children, type ReactElement, type ReactNode, useId } from "react";
+import {
+  Children,
+  type HTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+  useId,
+} from "react";
 import * as path from "path";
+
+type EnhanceProps<TArgs extends Array<unknown>> = {
+  with: string;
+  args?: TArgs;
+};
 
 export function Enhance<TArgs extends Array<unknown> = never>({
   with: name,
   args = [] as TArgs,
-  children,
-}: {
-  with: string;
-  args?: TArgs;
-  children?: ReactNode;
-}) {
+  ...rest
+}:
+  | EnhanceProps<TArgs>
+  | (EnhanceProps<TArgs> & HTMLAttributes<HTMLDivElement>)) {
   const id = useId();
 
   const params = new URLSearchParams({
@@ -20,6 +29,13 @@ export function Enhance<TArgs extends Array<unknown> = never>({
   });
 
   const scriptSrc = `/_script?${params.toString()}`;
+
+  let children;
+  if ("children" in rest) {
+    let { children: childrenNew, ...restNew } = rest;
+    children = childrenNew;
+    rest = restNew;
+  }
 
   const childrenArr = Children.toArray(children);
   if (childrenArr.length > 1) {
@@ -34,7 +50,7 @@ export function Enhance<TArgs extends Array<unknown> = never>({
 
   return (
     <>
-      {child && <div>{child}</div>}
+      {child && <div {...rest}>{child}</div>}
       <script
         async
         type="module"
