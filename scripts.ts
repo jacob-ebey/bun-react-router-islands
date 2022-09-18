@@ -1,14 +1,22 @@
 import * as Bun from "bun";
 import * as fs from "fs";
 import * as path from "path";
-import * as esbuild from "esbuild-wasm/lib/browser";
+import * as esbuildModule from "esbuild-wasm/lib/browser";
 
-await esbuild.initialize({
-  wasmModule: new WebAssembly.Module(
-    fs.readFileSync("./node_modules/esbuild-wasm/esbuild.wasm")
-  ),
-  worker: false,
-});
+declare global {
+  var _esbuild: typeof esbuildModule;
+}
+
+var esbuild = globalThis._esbuild;
+if (!esbuild) {
+  await esbuildModule.initialize({
+    wasmModule: new WebAssembly.Module(
+      fs.readFileSync("./node_modules/esbuild-wasm/esbuild.wasm")
+    ),
+    worker: false,
+  });
+  esbuild = globalThis._esbuild = esbuildModule;
+}
 
 const mode = process.env.NODE_ENV || "production";
 
@@ -63,7 +71,7 @@ export async function transformFile(src: string) {
   return code;
 }
 
-function bunResolvePlugin(): esbuild.Plugin {
+function bunResolvePlugin(): esbuildModule.Plugin {
   return {
     name: "bun-resolve",
     setup(build) {
@@ -90,7 +98,7 @@ function bunResolvePlugin(): esbuild.Plugin {
   };
 }
 
-function bunLoadPlugin(): esbuild.Plugin {
+function bunLoadPlugin(): esbuildModule.Plugin {
   return {
     name: "bun-load",
     setup(build) {
@@ -109,7 +117,7 @@ function bunLoadPlugin(): esbuild.Plugin {
   };
 }
 
-function esmNodeModulesPlugin(): esbuild.Plugin {
+function esmNodeModulesPlugin(): esbuildModule.Plugin {
   return {
     name: "esm-node-modules",
     setup(build) {
@@ -150,7 +158,7 @@ function esmNodeModulesPlugin(): esbuild.Plugin {
   };
 }
 
-function getLoader(file: string): esbuild.Loader {
+function getLoader(file: string): esbuildModule.Loader {
   const ext = path.extname(file);
   switch (ext) {
     case ".js":
