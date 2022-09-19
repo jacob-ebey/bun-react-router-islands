@@ -1,4 +1,3 @@
-import { serve } from "bun";
 import liveReload from "bun-livereload";
 import * as path from "path";
 import type * as React from "react";
@@ -99,7 +98,7 @@ export async function createServer({
     });
   }
 
-  return serve({
+  return Bun.serve({
     port,
     fetch:
       process.env.NODE_ENV === "production" ? handler : liveReload(handler),

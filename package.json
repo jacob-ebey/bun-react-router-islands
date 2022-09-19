@@ -16,8 +16,7 @@
   "dependencies": {
     "@remix-run/router": "^1.0.0",
     "bun-livereload": "^1.0.3",
-    "esbuild-wasm": "^0.15.7",
-    "preact": "^10.11.0",
+    "on-demand-bundler": "^0.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.4.0"
